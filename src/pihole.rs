@@ -22,8 +22,26 @@ impl Pihole {
     }
 
     pub fn summary(&self) -> Option<Value> {
+        return self.run_get_cmd("summaryRaw");
+    }
+
+    pub fn enable(&self) -> bool {
         let mut url = self.build_url();
-        url.push_str("&summaryRaw");
+        url.push_str("&enable");
+
+        return self.enable_disable(&url, "enabled");
+    }
+
+    pub fn disable(&self, seconds: u64) -> bool {
+        let mut url = self.build_url();
+
+        url.push_str(&format!("&disable={}", seconds));
+        return self.enable_disable(&url, "disabled");
+    }
+
+    fn run_get_cmd(&self, cmd: &str) -> Option<Value> {
+        let mut url = self.build_url();
+        url.push_str(&format!("&{}", cmd));
 
         let json_body = match self.get_url_resp_body(&url) {
             Some(b) => b,
@@ -41,20 +59,6 @@ impl Pihole {
                 return None
             }
         }
-    }
-
-    pub fn enable(&self) -> bool {
-        let mut url = self.build_url();
-        url.push_str("&enable");
-
-        return self.enable_disable(&url, "enabled");
-    }
-
-    pub fn disable(&self, seconds: u64) -> bool {
-        let mut url = self.build_url();
-
-        url.push_str(&format!("&disable={}", seconds));
-        return self.enable_disable(&url, "disabled");
     }
 
     fn enable_disable(&self, url: &str, expect: &str) -> bool {
