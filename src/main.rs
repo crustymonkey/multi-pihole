@@ -72,5 +72,4 @@ fn main() {
         "b5ca56146091ff594743d9108e5637672aed99160be6b2a1d68eeaca86fff8f0",
     );
 
-    debug!("{:?}", p.disable(3));
 }

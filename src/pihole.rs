@@ -1,6 +1,7 @@
+#![allow(dead_code)]
 
 use isahc::prelude::*;
-use serde_json;
+use serde_json::{self, Value};
 use log::{error, warn};
 use std::collections::HashMap;
 
@@ -20,10 +21,43 @@ impl Pihole {
         };
     }
 
+    pub fn summary(&self) -> Option<Value> {
+        let mut url = self.build_url();
+        url.push_str("&summaryRaw");
+
+        let json_body = match self.get_url_resp_body(&url) {
+            Some(b) => b,
+            _ => {
+                return None;
+            }
+        };
+
+        match serde_json::from_str::<Value>(&json_body) {
+            Ok(res) => {
+                return Some(res);
+            },
+            Err(e) => {
+                warn!("Failed to parse JSON body {}\n{}", e, &json_body);
+                return None
+            }
+        }
+    }
+
+    pub fn enable(&self) -> bool {
+        let mut url = self.build_url();
+        url.push_str("&enable");
+
+        return self.enable_disable(&url, "enabled");
+    }
+
     pub fn disable(&self, seconds: u64) -> bool {
         let mut url = self.build_url();
 
         url.push_str(&format!("&disable={}", seconds));
+        return self.enable_disable(&url, "disabled");
+    }
+
+    fn enable_disable(&self, url: &str, expect: &str) -> bool {
         let json_body = match self.get_url_resp_body(&url) {
             Some(b) => b,
             None => {
@@ -31,12 +65,14 @@ impl Pihole {
             }
         };
 
-        if let Ok(res) =
-                serde_json::from_str::<HashMap<String, String>>(&json_body) {
-            return res["status"] == "disabled";
-        } else {
-            warn!("Failed to deserialize response: {:?}", json_body);
-            return false
+        match serde_json::from_str::<HashMap<String, String>>(&json_body) {
+            Ok(res) => {   
+                return res["status"] == expect;
+            },
+            Err(e) => {
+                warn!("Failed to deserialize response from {}: {}", url, e);
+                return false;
+            },
         }
     }
 
@@ -51,7 +87,7 @@ impl Pihole {
         let body = match resp.text() {
             Ok(t) => t,
             Err(e) => {
-                error!("Failed to get response body: {}", e);
+                error!("Failed to get response body from {}: {}", url, e);
                 return None;
             },
         };
