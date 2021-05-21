@@ -292,6 +292,7 @@ fn main() {
                     serde_json::to_string_pretty(&v).ok().unwrap()
                 ),
             }
+            println!();
         }
     }
 
