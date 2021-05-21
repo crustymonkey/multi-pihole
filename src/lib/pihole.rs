@@ -4,10 +4,11 @@ use isahc::prelude::*;
 use serde_json::{self, Value};
 use log::{error, warn};
 use std::collections::HashMap;
+use super::config::PiServer;
 
 pub struct Pihole {
-    base_url: String,
-    api_key: String,
+    pub base_url: String,
+    pub api_key: String,
 }
 
 impl Pihole {
@@ -18,6 +19,13 @@ impl Pihole {
         return Self {
             base_url: base.to_string(),
             api_key: api_key.to_string()
+        };
+    }
+
+    pub fn from_cfg(cfg: &PiServer) -> Self {
+        return Self {
+            base_url: cfg.base_url.clone(),
+            api_key: cfg.api_key.clone(),
         };
     }
 
@@ -50,6 +58,8 @@ impl Pihole {
             }
         };
 
+        debug!("Received response from server: {}", &json_body);
+
         match serde_json::from_str::<Value>(&json_body) {
             Ok(res) => {
                 return Some(res);
@@ -68,6 +78,8 @@ impl Pihole {
                 return false;
             }
         };
+
+        debug!("Received response from server: {}", &json_body);
 
         match serde_json::from_str::<HashMap<String, String>>(&json_body) {
             Ok(res) => {   
