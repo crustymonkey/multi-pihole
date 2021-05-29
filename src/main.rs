@@ -77,10 +77,10 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
         .subcommand(SubCommand::with_name("version")
             .about("Print the version for each server")
         )
-        .subcommand(SubCommand::with_name("10min_queries")
+        .subcommand(SubCommand::with_name("10min-queries")
             .about("Print the query data for the top N items")
         )
-        .subcommand(SubCommand::with_name("top_items")
+        .subcommand(SubCommand::with_name("top-items")
             .about("Print the top N domains and advertisers")
             .arg(Arg::with_name("topn")
                 .short("-n")
@@ -90,7 +90,7 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
                 .help("Print this many domains")
             )
         )
-        .subcommand(SubCommand::with_name("top_clients")
+        .subcommand(SubCommand::with_name("top-clients")
             .about("Print the query data for the top N clients")
             .arg(Arg::with_name("topn")
                 .short("-n")
@@ -100,16 +100,16 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
                 .help("Print this many clients")
             )
         )
-        .subcommand(SubCommand::with_name("forward_dests")
+        .subcommand(SubCommand::with_name("forward-dests")
             .about("Print the forward destination stats")
         )
-        .subcommand(SubCommand::with_name("query_types")
+        .subcommand(SubCommand::with_name("query-types")
             .about("Print the query type stats")
         )
-        .subcommand(SubCommand::with_name("all_queries")
+        .subcommand(SubCommand::with_name("all-queries")
             .about("Print all queries")
         )
-        .subcommand(SubCommand::with_name("recent_blocked")
+        .subcommand(SubCommand::with_name("recent-blocked")
             .about("Print the most recently blocked domain")
         )
         .arg(Arg::with_name("config")
@@ -354,7 +354,7 @@ fn main() {
             }
             println!();
         }
-    } else if let Some(_) = args.subcommand_matches("10min_queries") {
+    } else if let Some(_) = args.subcommand_matches("10min-queries") {
         for s in &servers {
             println!("10min queries for {}", s.base_url);
             match s.over_time_data_10_mins() {
@@ -365,7 +365,7 @@ fn main() {
             }
             println!();
         }
-    } else if let Some(matches) = args.subcommand_matches("top_items") {
+    } else if let Some(matches) = args.subcommand_matches("top-items") {
         let topn = value_t!(matches, "topn", usize).ok().unwrap();
         for s in &servers {
             println!("The top {} domains for {}", topn, s.base_url);
@@ -376,7 +376,7 @@ fn main() {
                 ),
             }
         }
-    } else if let Some(matches) = args.subcommand_matches("top_clients") {
+    } else if let Some(matches) = args.subcommand_matches("top-clients") {
         let topn = value_t!(matches, "topc", usize).ok().unwrap();
         for s in &servers {
             println!("The top {} clients for {}", topn, s.base_url);
@@ -387,7 +387,7 @@ fn main() {
                 ),
             }
         }
-    } else if let Some(_) = args.subcommand_matches("forward_dests") {
+    } else if let Some(_) = args.subcommand_matches("forward-dests") {
         for s in &servers {
             println!("Forward destinations for {}", s.base_url);
             match s.get_fwd_dests() {
@@ -399,7 +399,7 @@ fn main() {
             }
             println!();
         }
-    } else if let Some(_) = args.subcommand_matches("query_types") {
+    } else if let Some(_) = args.subcommand_matches("query-types") {
         for s in &servers {
             println!("Query types for {}", s.base_url);
             match s.get_query_types() {
@@ -410,7 +410,7 @@ fn main() {
             }
             println!();
         }
-    } else if let Some(_) = args.subcommand_matches("all_queries") {
+    } else if let Some(_) = args.subcommand_matches("all-queries") {
         for s in &servers {
             println!("All queries for {}", s.base_url);
             match s.get_all_queries() {
@@ -421,7 +421,7 @@ fn main() {
             }
             println!();
         }
-    } else if let Some(_) = args.subcommand_matches("recent_blocked") {
+    } else if let Some(_) = args.subcommand_matches("recent-blocked") {
         for s in &servers {
             match s.recent_blocked() {
                 None => warn!("Couldn't get most recent blocked for {}",
