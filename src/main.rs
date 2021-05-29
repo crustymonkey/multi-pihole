@@ -377,7 +377,7 @@ fn main() {
             }
         }
     } else if let Some(matches) = args.subcommand_matches("top-clients") {
-        let topn = value_t!(matches, "topc", usize).ok().unwrap();
+        let topn = value_t!(matches, "topn", usize).ok().unwrap();
         for s in &servers {
             println!("The top {} clients for {}", topn, s.base_url);
             match s.top_clients(Some(topn)) {
