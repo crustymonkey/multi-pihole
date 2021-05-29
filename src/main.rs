@@ -71,6 +71,47 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
         .subcommand(SubCommand::with_name("summary")
             .about("Print a summary for each server")
         )
+        .subcommand(SubCommand::with_name("type")
+            .about("Print the server type for each server")
+        )
+        .subcommand(SubCommand::with_name("version")
+            .about("Print the version for each server")
+        )
+        .subcommand(SubCommand::with_name("10min_queries")
+            .about("Print the query data for the top N items")
+        )
+        .subcommand(SubCommand::with_name("top_items")
+            .about("Print the top N domains and advertisers")
+            .arg(Arg::with_name("topn")
+                .short("-n")
+                .long("--topn")
+                .value_name("INT")
+                .default_value("25")
+                .help("Print this many domains")
+            )
+        )
+        .subcommand(SubCommand::with_name("top_clients")
+            .about("Print the query data for the top N clients")
+            .arg(Arg::with_name("topn")
+                .short("-n")
+                .long("--topn")
+                .value_name("INT")
+                .default_value("25")
+                .help("Print this many clients")
+            )
+        )
+        .subcommand(SubCommand::with_name("forward_dests")
+            .about("Print the forward destination stats")
+        )
+        .subcommand(SubCommand::with_name("query_types")
+            .about("Print the query type stats")
+        )
+        .subcommand(SubCommand::with_name("all_queries")
+            .about("Print all queries")
+        )
+        .subcommand(SubCommand::with_name("recent_blocked")
+            .about("Print the most recently blocked domain")
+        )
         .arg(Arg::with_name("config")
             .short("-c")
             .long("--config")
@@ -273,7 +314,7 @@ fn main() {
 
     // Handle the subcommands
     if let Some(matches) = args.subcommand_matches("disable") {
-        let secs = value_t!(matches, "time", u64).ok().unwrap();
+        let secs = value_t!(matches, "time", usize).ok().unwrap();
         for s in &servers {
             debug!("Disabling '{}' for {} secs", s.base_url, secs);
             s.disable(secs);
@@ -294,6 +335,103 @@ fn main() {
             }
             println!();
         }
+    } else if let Some(_) = args.subcommand_matches("type") {
+        for s in &servers {
+            match s.summary() {
+                None => warn!("Couldn't get a type for {}", s.base_url),
+                Some(v) => println!("Type for {}: {}", s.base_url, &v["type"]),
+            }
+            println!();
+        }
+    } else if let Some(_) = args.subcommand_matches("version") {
+        for s in &servers {
+            match s.summary() {
+                None => warn!("Couldn't get a version for {}", s.base_url),
+                Some(v) => println!("Version for {}: {}",
+                    s.base_url,
+                    &v["version"]
+                ),
+            }
+            println!();
+        }
+    } else if let Some(_) = args.subcommand_matches("10min_queries") {
+        for s in &servers {
+            println!("10min queries for {}", s.base_url);
+            match s.summary() {
+                None => warn!("Couldn't get a 10min queries for {}", s.base_url),
+                Some(v) => println!("{}",
+                    serde_json::to_string_pretty(&v).ok().unwrap()
+                ),
+            }
+            println!();
+        }
+    } else if let Some(matches) = args.subcommand_matches("top_items") {
+        let topn = value_t!(matches, "topn", usize).ok().unwrap();
+        for s in &servers {
+            println!("The top {} domains for {}", topn, s.base_url);
+            match s.top_items(Some(topn)) {
+                None => warn!("Couldn't get top domains for {}", s.base_url),
+                Some(v) => println!("{}",
+                    serde_json::to_string_pretty(&v).ok().unwrap()
+                ),
+            }
+        }
+    } else if let Some(matches) = args.subcommand_matches("top_clients") {
+        let topn = value_t!(matches, "topc", usize).ok().unwrap();
+        for s in &servers {
+            println!("The top {} clients for {}", topn, s.base_url);
+            match s.top_items(Some(topn)) {
+                None => warn!("Couldn't get top clients for {}", s.base_url),
+                Some(v) => println!("{}",
+                    serde_json::to_string_pretty(&v).ok().unwrap()
+                ),
+            }
+        }
+    } else if let Some(_) = args.subcommand_matches("forward_dests") {
+        for s in &servers {
+            println!("Forward destinations for {}", s.base_url);
+            match s.summary() {
+                None => warn!("Couldn't get forward destinations for {}",
+                    s.base_url),
+                Some(v) => println!("{}",
+                    serde_json::to_string_pretty(&v).ok().unwrap()
+                ),
+            }
+            println!();
+        }
+    } else if let Some(_) = args.subcommand_matches("query_types") {
+        for s in &servers {
+            println!("Query types for {}", s.base_url);
+            match s.summary() {
+                None => warn!("Couldn't get query types for {}", s.base_url),
+                Some(v) => println!("{}",
+                    serde_json::to_string_pretty(&v).ok().unwrap()
+                ),
+            }
+            println!();
+        }
+    } else if let Some(_) = args.subcommand_matches("all_queries") {
+        for s in &servers {
+            println!("All queries for {}", s.base_url);
+            match s.summary() {
+                None => warn!("Couldn't get all queries for {}", s.base_url),
+                Some(v) => println!("{}",
+                    serde_json::to_string_pretty(&v).ok().unwrap()
+                ),
+            }
+            println!();
+        }
+    } else if let Some(_) = args.subcommand_matches("recent_blocked") {
+        for s in &servers {
+            println!("Most recent blocked for {}", s.base_url);
+            match s.summary() {
+                None => warn!("Couldn't get most recent blocked for {}",
+                    s.base_url),
+                Some(v) => println!("{}",
+                    serde_json::to_string_pretty(&v).ok().unwrap()
+                ),
+            }
+            println!();
+        }
     }
-
 }

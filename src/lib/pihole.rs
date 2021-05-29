@@ -2,7 +2,7 @@
 
 use isahc::prelude::*;
 use serde_json::{self, Value};
-use log::{error, warn};
+use log::{error, warn, debug};
 use std::collections::HashMap;
 use super::config::PiServer;
 
@@ -22,6 +22,7 @@ impl Pihole {
         };
     }
 
+    /// Return a Pihole instance from a PiServer config object
     pub fn from_cfg(cfg: &PiServer) -> Self {
         return Self {
             base_url: cfg.base_url.clone(),
@@ -29,28 +30,113 @@ impl Pihole {
         };
     }
 
+    /// Get the type from the server, FTL or PHP
+    pub fn stype(&self) -> Option<Value> {
+        return self.run_get_cmd("type");
+    }
+
+    /// Return the version of this server
+    pub fn version(&self) -> Option<Value> {
+        return self.run_get_cmd("version");
+    }
+
+    /// Return today's data in 10 minute intervals
+    pub fn over_time_data_10_mins(&self) -> Option<Value> {
+        return self.run_get_cmd("overTimeData10mins");
+    }
+
+    /// Get the top domain and top advertisers lists
+    pub fn top_items(&self, topN: Option<usize>) -> Option<Value> {
+        let _topN = match topN {
+            None => 25,
+            Some(n) => n,
+        };
+
+        let mut url = self.build_url();
+        url.push_str(&format!("&topItems={}", _topN));
+        debug!("Calling url: {}", &url);
+
+        return self.call_url(&url);
+    }
+
+    /// Get the top clients
+    pub fn get_top_clients(&self, topN: Option<usize>) -> Option<Value> {
+        let _topN = match topN {
+            None => 25,
+            Some(n) => n,
+        };
+
+        let mut url = self.build_url();
+        url.push_str(&format!("&topClients={}", _topN));
+        debug!("Calling url: {}", &url);
+
+        return self.call_url(&url);
+    }
+
+    // Get the forward destinations
+    pub fn get_fwd_dests(&self) -> Option<Value> {
+        let mut url = self.build_url();
+        url.push_str("&getForwardDestinations");
+        debug!("Calling url: {}", &url);
+
+        return self.call_url(&url);
+    }
+
+    /// Get the query type stats from the server
+    pub fn get_query_types(&self) -> Option<Value> {
+        let mut url = self.build_url();
+        url.push_str("&getQueryTypes");
+        debug!("Calling url: {}", &url);
+
+        return self.call_url(&url);
+    }
+
+    /// Get all the DNS query data
+    pub fn get_all_queries(&self) -> Option<Value> {
+        let mut url = self.build_url();
+        url.push_str("&getAllQueries");
+        debug!("Calling url: {}", &url);
+
+        return self.call_url(&url);
+    }
+
+    /// Get a stats summary from the server
     pub fn summary(&self) -> Option<Value> {
         return self.run_get_cmd("summaryRaw");
     }
 
+    /// Enable a server
     pub fn enable(&self) -> bool {
         let mut url = self.build_url();
         url.push_str("&enable");
+        debug!("Calling url: {}", &url);
 
         return self.enable_disable(&url, "enabled");
     }
 
-    pub fn disable(&self, seconds: u64) -> bool {
+    /// Disable a server for a specified number of seconds
+    pub fn disable(&self, seconds: usize) -> bool {
         let mut url = self.build_url();
-
         url.push_str(&format!("&disable={}", seconds));
+        debug!("Calling url: {}", &url);
+
         return self.enable_disable(&url, "disabled");
+    }
+
+    /// Get the most recently blocked domain
+    pub fn recent_blocked(&self) -> Option<Value> {
+        return self.run_get_cmd("recentBlocked");
     }
 
     fn run_get_cmd(&self, cmd: &str) -> Option<Value> {
         let mut url = self.build_url();
         url.push_str(&format!("&{}", cmd));
+        debug!("Calling url: {}", &url);
 
+        return self.call_url(&url);
+    }
+
+    fn call_url(&self, url: &str) -> Option<Value> {
         let json_body = match self.get_url_resp_body(&url) {
             Some(b) => b,
             _ => {
