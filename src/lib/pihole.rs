@@ -60,7 +60,7 @@ impl Pihole {
     }
 
     /// Get the top clients
-    pub fn get_top_clients(&self, top_n: Option<usize>) -> Option<Value> {
+    pub fn top_clients(&self, top_n: Option<usize>) -> Option<Value> {
         let _top_n = match top_n {
             None => 25,
             Some(n) => n,
@@ -124,8 +124,11 @@ impl Pihole {
     }
 
     /// Get the most recently blocked domain
-    pub fn recent_blocked(&self) -> Option<Value> {
-        return self.run_get_cmd("recentBlocked");
+    pub fn recent_blocked(&self) -> Option<String> {
+        let mut url = self.build_url();
+        url.push_str(&format!("&{}", "recentBlocked"));
+        debug!("Calling url: {}", &url);
+        return self.get_url_resp_body(&url);
     }
 
     fn run_get_cmd(&self, cmd: &str) -> Option<Value> {
