@@ -9,7 +9,9 @@ saved at `~/.mpihole`.  You can modify that file directly, or you can run
 `pi-ctl -r` to re-configure, including adding/modifying/removing pihole servers.
 
 ## Commands
-There are 3 different commands available: `enable`, `disable`, and `summary`.
+There are a number of different commands available.  You can find them all
+by running `pi-ctl -h`.  They API versions of these are also documented on
+the [Pi-hole API site](https://discourse.pi-hole.net/t/pi-hole-api/1863).
 
 ### `disable`
 If you run `pi-ctl disable`, it will disable all configured servers for 5
@@ -23,37 +25,36 @@ pi-ctl disable -t 60
 To re-enable all your servers, you just run `pi-ctl enable`.  There are no
 options for this.
 
-### `summary`
-This command will print out a pretty-printed JSON summary for each server.
-Run this as `pi-ctl summary`.  The output will look like this:
+### help
+Run `pi-ctl -h` to show all the available subcommands:
 ```
-Summary for http://pihole.example.com
-{
+USAGE:
+    pi-ctl [FLAGS] [OPTIONS] [SUBCOMMAND]
 
-  "ads_blocked_today": 10713,
-  "ads_percentage_today": 0.748202,
-  "clients_ever_seen": 54,
-  "dns_queries_all_types": 1431832,
-  "dns_queries_today": 1431832,
-  "domains_being_blocked": 92988,
-  "gravity_last_updated": {
-    "absolute": 1621137966,
-    "file_exists": true,
-    "relative": {
-      "days": 5,
-      "hours": 15,
-      "minutes": 58
-    }
-  },
-  "privacy_level": 0,
-  "queries_cached": 1317823,
-  "queries_forwarded": 98663,
-  "reply_CNAME": 857,
-  "reply_IP": 182729,
-  "reply_NODATA": 68578,
-  "reply_NXDOMAIN": 472,
-  "status": "enabled",
-  "unique_clients": 54,
-  "unique_domains": 2383
-}
+FLAGS:
+    -D, --debug          Turn on debug output
+    -h, --help           Prints help information
+    -r, --reconfigure    (Re)configure your pihole servers
+    -s, --show-config    Show the current config and exit
+    -V, --version        Prints version information
+
+OPTIONS:
+    -c, --config <PATH>    The path to the config file [default:
+                           /home/jay/.mpihole]
+
+SUBCOMMANDS:
+    10min_queries     Print the query data for the top N items
+    all_queries       Print all queries
+    disable           Disable the pihole servers
+    enable            Enable the pihole servers
+    forward_dests     Print the forward destination stats
+    help              Prints this message or the help of the given
+                      subcommand(s)
+    query_types       Print the query type stats
+    recent_blocked    Print the most recently blocked domain
+    summary           Print a summary for each server
+    top_clients       Print the query data for the top N clients
+    top_items         Print the top N domains and advertisers
+    type              Print the server type for each server
+    version           Print the version for each server
 ```
