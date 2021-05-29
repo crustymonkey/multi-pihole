@@ -46,28 +46,28 @@ impl Pihole {
     }
 
     /// Get the top domain and top advertisers lists
-    pub fn top_items(&self, topN: Option<usize>) -> Option<Value> {
-        let _topN = match topN {
+    pub fn top_items(&self, top_n: Option<usize>) -> Option<Value> {
+        let _top_n = match top_n {
             None => 25,
             Some(n) => n,
         };
 
         let mut url = self.build_url();
-        url.push_str(&format!("&topItems={}", _topN));
+        url.push_str(&format!("&topItems={}", _top_n));
         debug!("Calling url: {}", &url);
 
         return self.call_url(&url);
     }
 
     /// Get the top clients
-    pub fn get_top_clients(&self, topN: Option<usize>) -> Option<Value> {
-        let _topN = match topN {
+    pub fn get_top_clients(&self, top_n: Option<usize>) -> Option<Value> {
+        let _top_n = match top_n {
             None => 25,
             Some(n) => n,
         };
 
         let mut url = self.build_url();
-        url.push_str(&format!("&topClients={}", _topN));
+        url.push_str(&format!("&topClients={}", _top_n));
         debug!("Calling url: {}", &url);
 
         return self.call_url(&url);
