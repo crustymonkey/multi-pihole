@@ -116,6 +116,7 @@ fn disable(req: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
     };
 
     for s in &ctx.servers {
+        info!("Disabling pihole on {} for {} secs", s.base_url, secs);
         s.disable(secs);
     }
 
@@ -124,6 +125,7 @@ fn disable(req: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
 
 fn enable(_: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
     for s in &ctx.servers {
+        info!("Enabling pihole for {}", s.base_url);
         s.enable();
     }
 
@@ -176,6 +178,8 @@ fn main() {
     let mut router = Router::new();
     create_routes(&mut router, context.clone());
 
+    debug!("Creating web server bound to {}",
+        context.web_conf.get("main", "bind_to").unwrap());
     Iron::new(router).http(context.web_conf.get("main", "bind_to").unwrap())
         .unwrap();
 }
