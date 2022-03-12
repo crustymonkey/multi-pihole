@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use isahc::prelude::*;
+use isahc::{prelude::*, Request, config::RedirectPolicy};
 use serde_json::{self, Value};
 use log::{error, warn, debug};
 use std::collections::HashMap;
@@ -182,12 +182,18 @@ impl Pihole {
     }
 
     fn get_url_resp_body(&self, url: &str) -> Option<String> {
-        let mut resp = match isahc::get(url) {
+        let mut resp = match 
+            Request::get(url)
+                .redirect_policy(RedirectPolicy::Follow)
+                .body(()).unwrap()
+                .send()
+        {
             Ok(r) => r,
             _ => {
                 return None;
             },
         };
+
 
         let body = match resp.text() {
             Ok(t) => t,
