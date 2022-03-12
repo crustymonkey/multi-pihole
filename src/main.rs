@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 extern crate chrono;
 #[macro_use]
 extern crate clap;
