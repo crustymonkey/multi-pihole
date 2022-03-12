@@ -142,9 +142,7 @@ impl Pihole {
     fn call_url(&self, url: &str) -> Option<Value> {
         let json_body = match self.get_url_resp_body(&url) {
             Some(b) => b,
-            _ => {
-                return None;
-            }
+            _ => { return None; }
         };
 
         debug!("Received response from server: {}", &json_body);
