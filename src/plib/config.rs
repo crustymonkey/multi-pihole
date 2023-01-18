@@ -18,6 +18,7 @@ pub struct PiServer {
     pub api_key: String,
 }
 
+#[allow(dead_code)]
 pub enum FromPath {
     IOError(String),
     FileNotFound(String),
@@ -25,6 +26,7 @@ pub enum FromPath {
 }
 
 impl PiConfig {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         return Self { servers: vec![] };
     }
@@ -52,6 +54,7 @@ impl PiConfig {
         return Ok(ret);
     }
 
+    #[allow(dead_code)]
     pub fn save_to_path(&self, path: &Path) -> Result<(), FromPath> {
         debug!("Attempting to save the config to: {}", path.to_string_lossy());
         let fp = match OpenOptions::new()
@@ -76,6 +79,7 @@ impl PiConfig {
     }
 
     /// Add a server to the list
+    #[allow(dead_code)]
     pub fn add_server(&mut self, server: PiServer) {
         self.servers.push(server);
     }
@@ -83,6 +87,7 @@ impl PiConfig {
 }
 
 impl PiServer {
+    #[allow(dead_code)]
     pub fn new(base_url: &str, api_key: &str) -> Self {
         let base = base_url.trim_matches('/');
 

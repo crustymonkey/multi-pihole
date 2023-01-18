@@ -7,7 +7,7 @@ extern crate iron;
 extern crate router;
 extern crate configparser;
 
-mod lib;
+mod plib;
 
 use clap::{ArgMatches, Arg, App};
 
@@ -20,7 +20,7 @@ use iron::{
     status,
 };
 use router::Router;
-use lib::{
+use plib::{
     config::{self, PiConfig},
     pihole::Pihole,
     web_config::get_config,

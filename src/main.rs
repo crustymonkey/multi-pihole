@@ -7,7 +7,7 @@ extern crate log;
 extern crate serde;
 extern crate serde_json;
 
-mod lib;
+mod plib;
 
 use clap::{ArgMatches, App, Arg, SubCommand, value_t};
 use std::{
@@ -16,7 +16,7 @@ use std::{
     fs::File,
     io::{self, Read, Write},
 };
-use lib::{
+use plib::{
     config::{self, PiServer, PiConfig},
     pihole::Pihole,
 };
