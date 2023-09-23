@@ -1,6 +1,6 @@
 [package]
 name = "pi-ctl"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Jay Deiman <jay@splitstreams.com>"]
 edition = "2018"
 

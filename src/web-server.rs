@@ -14,6 +14,8 @@ use clap::{ArgMatches, Arg, App};
 use std::{
     path::Path,
     sync::Arc,
+    io::prelude::*,
+    fs::File,
 };
 use iron::{
     prelude::*,
@@ -132,10 +134,40 @@ fn enable(_: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
     return Ok(Response::with((status::Ok, "OK")));
 }
 
+fn index(req: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
+    let static_dir = ctx.web_conf.get("main", "static_dir").unwrap();
+    let fname = Path::new(&static_dir).join("index.html");
+
+    let mut file = File::open(&fname).unwrap();
+    let mut content = String::new();
+    file.read_to_string(&mut content).unwrap();
+
+    return Ok(Response::with((status::Ok, content)));
+}
+
+fn static_f(req: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
+    let static_dir = ctx.web_conf.get("main", "static_dir").unwrap();
+    // Strip off the first part of the path ("static") and replace it with the
+    // static dir to get a proper path to a static file
+    let path = &req.url.path()[1..];
+    let fname = Path::new(&static_dir).join(path.join("/"));
+    info!("serving file: {:?}", fname);
+    if !fname.exists() {
+        return Ok(Response::with((status::NotFound, "Not found\n")));
+    }
+
+    let mut content = String::new();
+    File::open(&fname).unwrap().read_to_string(&mut content).unwrap();
+
+    return Ok(Response::with((status::Ok, content)));
+}
+
 fn create_routes(router: &mut Router, context: Arc<ReqContext>) {
     // TODO: There's very likely a better way to do this and make the compiler happy
     let dis_ctx = context.clone();
     let en_ctx = context.clone();
+    let idx_ctx = context.clone();
+    let static_ctx = context.clone();
     router.get(
         "/disable/:secs",
         move |r: &mut Request| disable(r, dis_ctx.clone()),
@@ -145,6 +177,16 @@ fn create_routes(router: &mut Router, context: Arc<ReqContext>) {
         "/enable",
         move |r: &mut Request| enable(r, en_ctx.clone()),
         "enable",
+    );
+    router.get(
+        "/",
+        move |r: &mut Request| index(r, idx_ctx.clone()),
+        "index",
+    );
+    router.get(
+        "/static/*",
+        move |r: &mut Request| static_f(r, static_ctx.clone()),
+        "static",
     );
 }
 

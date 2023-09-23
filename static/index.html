@@ -1,0 +1,37 @@
+<html>
+<head>
+  <title>Master pi-ctl</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="/static/js/main.js"></script>
+  <script>
+    $(document).ready(function() {
+      $("#enable").click(function() {
+        console.log('Enabling piholes');
+        MPI.enable();
+      });
+      $("#disable").click(function() {
+        var secs = $("#dis_secs").val();
+        console.log('Disabling piholes for ' + secs + ' seconds');
+        MPI.disable(secs);
+      });
+    });
+  </script>
+  <style>
+    div {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h3>This is the master pi-ctl</h3>
+    <div>
+      <button id="enable">Enable all Piholes</button></br>
+    </div>
+    <div>
+      <input id="dis_secs" type="text" value="300" size="5"/>
+      <button id="disable">Disable all Piholes for N seconds</button></br>
+    </div>
+  </div>
+</body>
+</html>
