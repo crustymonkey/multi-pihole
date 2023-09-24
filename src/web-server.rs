@@ -20,6 +20,9 @@ use std::{
 use iron::{
     prelude::*,
     status,
+    modifiers::Header,
+    headers::ContentType,
+    mime::{Mime, TopLevel, SubLevel},
 };
 use router::Router;
 use plib::{
@@ -134,15 +137,18 @@ fn enable(_: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
     return Ok(Response::with((status::Ok, "OK")));
 }
 
-fn index(req: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
+fn index(_: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
     let static_dir = ctx.web_conf.get("main", "static_dir").unwrap();
     let fname = Path::new(&static_dir).join("index.html");
 
     let mut file = File::open(&fname).unwrap();
     let mut content = String::new();
     file.read_to_string(&mut content).unwrap();
+    let content_type = Header(
+        ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))
+    );
 
-    return Ok(Response::with((status::Ok, content)));
+    return Ok(Response::with((status::Ok, content, content_type)));
 }
 
 fn static_f(req: &mut Request, ctx: Arc<ReqContext>) -> IronResult<Response> {
