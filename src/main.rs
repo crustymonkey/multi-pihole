@@ -439,7 +439,7 @@ fn main() {
     } else if let Some(_) = args.subcommand_matches("status") {
         for s in &servers {
             match s.status() {
-                None => warn!("Couldn't get for {}", s.base_url),
+                None => warn!("Couldn't get status for {}", s.base_url),
                 Some(v) => println!("{}: {}", s.base_url, v),
             }
         }
