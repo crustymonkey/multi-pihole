@@ -105,6 +105,14 @@ impl Pihole {
         return self.run_get_cmd("summaryRaw");
     }
 
+    /// Get the status from the summary
+    pub fn status(&self) -> Option<String> {
+        return match self.summary() {
+            None => None,
+            Some(s) => Some(s.get("status").unwrap().to_string()),
+        };
+    }
+
     /// Enable a server
     pub fn enable(&self) -> bool {
         let mut url = self.build_url();

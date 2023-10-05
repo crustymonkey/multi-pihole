@@ -56,6 +56,10 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
         .author("Jay Deiman")
         .about(crate_description!())
         .set_term_width(80)
+        .subcommand(SubCommand::with_name("status")
+            .about("Get the current status for your pihole servers \
+            (enabled|disabled)")
+        )
         .subcommand(SubCommand::with_name("enable")
             .about("Enable the pihole servers")
         )
@@ -431,6 +435,13 @@ fn main() {
                     s.base_url, v),
             }
             println!();
+        }
+    } else if let Some(_) = args.subcommand_matches("status") {
+        for s in &servers {
+            match s.status() {
+                None => warn!("Couldn't get for {}", s.base_url),
+                Some(v) => println!("{}: {}", s.base_url, v),
+            }
         }
     }
 }
