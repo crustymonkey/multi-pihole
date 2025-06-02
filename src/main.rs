@@ -166,7 +166,7 @@ fn get_new_server(ask_another: bool) -> (config::PiServer, bool) {
     io::stdin().read_line(&mut url).unwrap();
 
     let mut api_key = String::new();
-    print!("Now, enter the api key for that server:  ");
+    print!("Now, enter the password (same as the web interface) for that server:  ");
     io::stdout().flush().unwrap();
     io::stdin().read_line(&mut api_key).unwrap();
 
@@ -185,8 +185,8 @@ fn get_new_server(ask_another: bool) -> (config::PiServer, bool) {
 
 fn get_modify_delete(server: &config::PiServer) -> Option<usize> {
     let mut resp = String::new();
-    println!("Found a config for '{}' with key '{}'",
-        server.base_url, server.api_key);
+    println!("Found a config for '{}' with password ******",
+        server.base_url);
     println!("Choose an option:");
     println!("  1) modify");
     println!("  2) delete");
@@ -227,7 +227,7 @@ fn configure(conf_path: &Path, cur_config: Option<config::PiConfig>) -> config::
         println!("Welcome to the mpihole configuration!\n");
         println!("We're going to configure some new pihole servers.  For each");
         println!("one, you'll need the base url (http://mypihole.example.com)");
-        println!("and an api key that you can get from your server(s).\n");
+        println!("and the password that you use for the web interface.\n");
         
         add_new_servers(&mut ret);
     } else {
@@ -314,7 +314,13 @@ fn main() {
 
     let servers: Vec<Pihole> = conf.servers
         .iter()
-        .map(|x| Pihole::from_cfg(x))
+        .map(|x| {
+            let mut ph = Pihole::from_cfg(x);
+            ph.auth().expect(
+                &format!("Failed to authenticate with server: {}", x.base_url)
+            );
+            ph
+        })
         .collect();
 
     // Handle the subcommands

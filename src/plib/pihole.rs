@@ -1,24 +1,26 @@
 #![allow(dead_code)]
 
 use isahc::{prelude::*, Request, config::RedirectPolicy};
-use serde_json::{self, Value};
+use serde_json::{self, Value, json};
 use log::{error, warn, debug};
 use std::collections::HashMap;
 use super::config::PiServer;
 
 pub struct Pihole {
     pub base_url: String,
-    pub api_key: String,
+    pub passwd: String,
+    pub sid: Option<String>,  // This is the auth session ID that will be used
 }
 
 impl Pihole {
-    pub fn new(base_url: &str, api_key: &str) -> Self {
+    pub fn new(base_url: &str, passwd: &str) -> Self {
         // Strip off any trailing slash
         let base = base_url.trim_matches('/');
 
         return Self {
             base_url: base.to_string(),
-            api_key: api_key.to_string()
+            passwd: passwd.to_string(),
+            sid: None,
         };
     }
 
@@ -26,8 +28,28 @@ impl Pihole {
     pub fn from_cfg(cfg: &PiServer) -> Self {
         return Self {
             base_url: cfg.base_url.clone(),
-            api_key: cfg.api_key.clone(),
+            passwd: cfg.passwd.clone(),
+            sid: None,
         };
+    }
+
+    /// Authenticate with the server, this should mostly be just an internal
+    /// call, but is still accessible in general
+    pub fn auth(&mut self) -> Option<Value> {
+        let data = json!({
+            "password": self.passwd,
+        });
+
+        let res = self.run_post_cmd("auth", data);
+
+        if let Some(r) = &res {
+            if let Some(sess) = r.get("session") {
+                // We didn't get an error here, so we can yank the session ID
+                self.sid = Some(sess["sid"].as_str().unwrap().to_string());
+            }
+        }
+
+        return res;
     }
 
     /// Get the type from the server, FTL or PHP
@@ -56,7 +78,7 @@ impl Pihole {
         url.push_str(&format!("&topItems={}", _top_n));
         debug!("Calling url: {}", &url);
 
-        return self.call_url(&url);
+        return self.call_url(&url, None);
     }
 
     /// Get the top clients
@@ -70,7 +92,7 @@ impl Pihole {
         url.push_str(&format!("&topClients={}", _top_n));
         debug!("Calling url: {}", &url);
 
-        return self.call_url(&url);
+        return self.call_url(&url, None);
     }
 
     // Get the forward destinations
@@ -79,7 +101,7 @@ impl Pihole {
         url.push_str("&getForwardDestinations");
         debug!("Calling url: {}", &url);
 
-        return self.call_url(&url);
+        return self.call_url(&url, None);
     }
 
     /// Get the query type stats from the server
@@ -88,7 +110,7 @@ impl Pihole {
         url.push_str("&getQueryTypes");
         debug!("Calling url: {}", &url);
 
-        return self.call_url(&url);
+        return self.call_url(&url, None);
     }
 
     /// Get all the DNS query data
@@ -97,12 +119,12 @@ impl Pihole {
         url.push_str("&getAllQueries");
         debug!("Calling url: {}", &url);
 
-        return self.call_url(&url);
+        return self.call_url(&url, None);
     }
 
     /// Get a stats summary from the server
     pub fn summary(&self) -> Option<Value> {
-        return self.run_get_cmd("summaryRaw");
+        return self.run_get_cmd("stats/summary");
     }
 
     /// Get the status from the summary
@@ -136,19 +158,28 @@ impl Pihole {
         let mut url = self.build_url();
         url.push_str(&format!("&{}", "recentBlocked"));
         debug!("Calling url: {}", &url);
-        return self.get_url_resp_body(&url);
+        return self.get_url_resp_body(&url, None);
     }
 
     fn run_get_cmd(&self, cmd: &str) -> Option<Value> {
         let mut url = self.build_url();
-        url.push_str(&format!("&{}", cmd));
+        url.push_str(&format!("/{}", cmd));
         debug!("Calling url: {}", &url);
 
-        return self.call_url(&url);
+        return self.call_url(&url, None);
     }
 
-    fn call_url(&self, url: &str) -> Option<Value> {
-        let json_body = match self.get_url_resp_body(&url) {
+    fn run_post_cmd(&self, cmd: &str, data: Value) -> Option<Value> {
+        let mut url = self.build_url();
+        url.push_str(&format!("/{}", cmd));
+
+
+        debug!("Calling url: {}", &url);
+        return self.call_url(&url, Some(&data.to_string()));
+    }
+
+    fn call_url(&self, url: &str, data: Option<&str>) -> Option<Value> {
+        let json_body = match self.get_url_resp_body(&url, data) {
             Some(b) => b,
             _ => { return None; }
         };
@@ -167,7 +198,7 @@ impl Pihole {
     }
 
     fn enable_disable(&self, url: &str, expect: &str) -> bool {
-        let json_body = match self.get_url_resp_body(&url) {
+        let json_body = match self.get_url_resp_body(&url, None) {
             Some(b) => b,
             None => {
                 return false;
@@ -187,21 +218,33 @@ impl Pihole {
         }
     }
 
-    fn get_url_resp_body(&self, url: &str) -> Option<String> {
-        let mut resp = match 
-            Request::get(url)
-                .redirect_policy(RedirectPolicy::Follow)
-                .body(()).unwrap()
-                .send()
-        {
-            Ok(r) => r,
-            _ => {
-                return None;
+    fn get_url_resp_body(&self, url: &str, body: Option<&str>) -> Option<String> {
+        // If we have a body, it's a POST request of type application/json
+        let resp = match body {
+            Some(b) => {
+                let mut req = Request::post(url)
+                    .redirect_policy(RedirectPolicy::Follow)
+                    .header("Content-Type", "application/json");
+                if let Some(sid) = &self.sid {
+                    req = req.header("X-FTL-SID", sid);
+                }
+                req.body(b).unwrap().send()
             },
+            None => {
+                Request::get(url)
+                    .redirect_policy(RedirectPolicy::Follow)
+                    .header("X-FTL-SID", self.sid.as_ref().unwrap())
+                    .body(()).unwrap()
+                    .send()
+            }
         };
 
+        if let Err(e) = resp {
+            error!("Failed to send request to {}: {}", url, e);
+            return None;
+        }
 
-        let body = match resp.text() {
+        let ret = match resp.unwrap().text() {
             Ok(t) => t,
             Err(e) => {
                 error!("Failed to get response body from {}: {}", url, e);
@@ -209,7 +252,7 @@ impl Pihole {
             },
         };
 
-        return Some(body);
+        return Some(ret);
     }
 
     fn build_url(&self) -> String {
@@ -217,7 +260,7 @@ impl Pihole {
 
         ret.push_str(&self.base_url);
         // Add the api
-        ret.push_str(&format!("/api.php?auth={}", &self.api_key));
+        ret.push_str("/api");
 
         return ret;
     }
