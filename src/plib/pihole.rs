@@ -3,7 +3,6 @@
 use isahc::{prelude::*, Request, config::RedirectPolicy};
 use serde_json::{self, Value, json};
 use log::{error, warn, debug};
-use std::collections::HashMap;
 use super::config::PiServer;
 
 pub struct Pihole {
@@ -52,14 +51,9 @@ impl Pihole {
         return res;
     }
 
-    /// Get the type from the server, FTL or PHP
-    pub fn stype(&self) -> Option<Value> {
-        return self.run_get_cmd("type");
-    }
-
     /// Return the version of this server
     pub fn version(&self) -> Option<Value> {
-        return self.run_get_cmd("version");
+        return self.run_get_cmd("info/version");
     }
 
     /// Return today's data in 10 minute intervals
@@ -75,7 +69,7 @@ impl Pihole {
         };
 
         let mut url = self.build_url();
-        url.push_str(&format!("&topItems={}", _top_n));
+        url.push_str(&format!("/stats/top_domains?count={}", _top_n));
         debug!("Calling url: {}", &url);
 
         return self.call_url(&url, None);
@@ -89,31 +83,23 @@ impl Pihole {
         };
 
         let mut url = self.build_url();
-        url.push_str(&format!("&topClients={}", _top_n));
+        url.push_str(&format!("/stats/top_clients?count={}", _top_n));
         debug!("Calling url: {}", &url);
 
         return self.call_url(&url, None);
     }
 
     // Get the forward destinations
-    pub fn get_fwd_dests(&self) -> Option<Value> {
-        let mut url = self.build_url();
-        url.push_str("&getForwardDestinations");
-        debug!("Calling url: {}", &url);
-
-        return self.call_url(&url, None);
+    pub fn get_upstreams(&self) -> Option<Value> {
+        return self.run_get_cmd("stats/upstreams");
     }
 
     /// Get the query type stats from the server
     pub fn get_query_types(&self) -> Option<Value> {
-        let mut url = self.build_url();
-        url.push_str("&getQueryTypes");
-        debug!("Calling url: {}", &url);
-
-        return self.call_url(&url, None);
+        return self.run_get_cmd("stats/query_types");
     }
 
-    /// Get all the DNS query data
+    /// TODO: FIX Get all the DNS query data
     pub fn get_all_queries(&self) -> Option<Value> {
         let mut url = self.build_url();
         url.push_str("&getAllQueries");
@@ -129,38 +115,45 @@ impl Pihole {
 
     /// Get the status from the summary
     pub fn status(&self) -> Option<String> {
-        return match self.summary() {
+        let res = self.run_get_cmd("dns/blocking");
+        return match res {
             None => None,
-            Some(s) => Some(s.get("status").unwrap().to_string()),
+            Some(s) => {
+                Some(s["blocking"].to_string())
+            },
         };
     }
 
     /// Enable a server
-    pub fn enable(&self) -> bool {
-        let mut url = self.build_url();
-        url.push_str("&enable");
-        debug!("Calling url: {}", &url);
+    pub fn enable(&self) -> Option<Value> {
+        let body = json!({
+            "blocking": true,
+            "timer": null
+        });
 
-        return self.enable_disable(&url, "enabled");
+        return self.run_post_cmd("dns/blocking", body);
     }
 
     /// Disable a server for a specified number of seconds
-    pub fn disable(&self, seconds: usize) -> bool {
-        let mut url = self.build_url();
-        url.push_str(&format!("&disable={}", seconds));
-        debug!("Calling url: {}", &url);
+    pub fn disable(&self, seconds: usize) -> Option<Value> {
+        let body = json!({
+            "blocking": false,
+            "timer": seconds
+        });
 
-        return self.enable_disable(&url, "disabled");
+        return self.run_post_cmd("dns/blocking", body);
     }
 
     /// Get the most recently blocked domain
-    pub fn recent_blocked(&self) -> Option<String> {
-        let mut url = self.build_url();
-        url.push_str(&format!("&{}", "recentBlocked"));
-        debug!("Calling url: {}", &url);
-        return self.get_url_resp_body(&url, None);
+    pub fn recent_blocked(&self) -> Option<Value> {
+        return self.run_get_cmd("stats/recent_blocked");
     }
 
+    /*
+     * Private methods for internal use
+     */
+
+    /// This is a high level function to run a GET command with no frills
     fn run_get_cmd(&self, cmd: &str) -> Option<Value> {
         let mut url = self.build_url();
         url.push_str(&format!("/{}", cmd));
@@ -169,6 +162,7 @@ impl Pihole {
         return self.call_url(&url, None);
     }
 
+    /// This is a high level function to run a POST command with no frills
     fn run_post_cmd(&self, cmd: &str, data: Value) -> Option<Value> {
         let mut url = self.build_url();
         url.push_str(&format!("/{}", cmd));
@@ -194,27 +188,6 @@ impl Pihole {
                 warn!("Failed to parse JSON body {}\n{}", e, &json_body);
                 return None
             }
-        }
-    }
-
-    fn enable_disable(&self, url: &str, expect: &str) -> bool {
-        let json_body = match self.get_url_resp_body(&url, None) {
-            Some(b) => b,
-            None => {
-                return false;
-            }
-        };
-
-        debug!("Received response from server: {}", &json_body);
-
-        match serde_json::from_str::<HashMap<String, String>>(&json_body) {
-            Ok(res) => {   
-                return res["status"] == expect;
-            },
-            Err(e) => {
-                warn!("Failed to deserialize response from {}: {}", url, e);
-                return false;
-            },
         }
     }
 
@@ -263,5 +236,37 @@ impl Pihole {
         ret.push_str("/api");
 
         return ret;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pihole_new() {
+        let pihole = Pihole::new("http://localhost", "password");
+        assert_eq!(pihole.base_url, "http://localhost");
+        assert_eq!(pihole.passwd, "password");
+        assert!(pihole.sid.is_none());
+    }
+
+    #[test]
+    fn test_pihole_from_cfg() {
+        let cfg = PiServer {
+            base_url: "http://localhost".to_string(),
+            passwd: "password".to_string(),
+        };
+        let pihole = Pihole::from_cfg(&cfg);
+        assert_eq!(pihole.base_url, "http://localhost");
+        assert_eq!(pihole.passwd, "password");
+        assert!(pihole.sid.is_none());
+    }
+
+    #[test]
+    fn test_build_url() {
+        let pihole = Pihole::new("http://localhost", "password");
+        let url = pihole.build_url();
+        assert_eq!(url, "http://localhost/api");
     }
 }

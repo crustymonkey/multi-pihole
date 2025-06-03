@@ -85,8 +85,8 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
         .subcommand(SubCommand::with_name("10min-queries")
             .about("Print the query data for the top N items")
         )
-        .subcommand(SubCommand::with_name("top-items")
-            .about("Print the top N domains and advertisers")
+        .subcommand(SubCommand::with_name("top-domains")
+            .about("Print the top N domains")
             .arg(Arg::with_name("topn")
                 .short("-n")
                 .long("--topn")
@@ -105,7 +105,7 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
                 .help("Print this many clients")
             )
         )
-        .subcommand(SubCommand::with_name("forward-dests")
+        .subcommand(SubCommand::with_name("upstreams")
             .about("Print the forward destination stats")
         )
         .subcommand(SubCommand::with_name("query-types")
@@ -346,14 +346,6 @@ fn main() {
             }
             println!();
         }
-    } else if let Some(_) = args.subcommand_matches("type") {
-        for s in &servers {
-            match s.stype() {
-                None => warn!("Couldn't get a type for {}", s.base_url),
-                Some(v) => println!("Type for {}: {}", s.base_url, &v["type"]),
-            }
-            println!();
-        }
     } else if let Some(_) = args.subcommand_matches("version") {
         for s in &servers {
             match s.version() {
@@ -376,7 +368,7 @@ fn main() {
             }
             println!();
         }
-    } else if let Some(matches) = args.subcommand_matches("top-items") {
+    } else if let Some(matches) = args.subcommand_matches("top-domains") {
         let topn = value_t!(matches, "topn", usize).ok().unwrap();
         for s in &servers {
             println!("The top {} domains for {}", topn, s.base_url);
@@ -398,10 +390,10 @@ fn main() {
                 ),
             }
         }
-    } else if let Some(_) = args.subcommand_matches("forward-dests") {
+    } else if let Some(_) = args.subcommand_matches("upstreams") {
         for s in &servers {
             println!("Forward destinations for {}", s.base_url);
-            match s.get_fwd_dests() {
+            match s.get_upstreams() {
                 None => warn!("Couldn't get forward destinations for {}",
                     s.base_url),
                 Some(v) => println!("{}",
