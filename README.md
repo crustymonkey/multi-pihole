@@ -3,6 +3,10 @@ This is just a cli for running commands against multiple pihole servers.  This
 is helpful if you have a primary, secondary, and any tertiary servers, but want
 to manage them all at the same time.
 
+## IMPORTANT
+Version 0.4.0+ is compatible with pihole 6.X+.  Note that 0.4+ is **not**
+backwards compatible with pre-pihole 6 versions.
+
 ## Configuring `pi-ctl`
 This will happen automatically on a first run.  The JSON config file will be
 saved at `~/.mpihole`.  You can modify that file directly, or you can run 
@@ -43,18 +47,17 @@ OPTIONS:
                            /home/jay/.mpihole]
 
 SUBCOMMANDS:
-    10min_queries     Print the query data for the top N items
-    all_queries       Print all queries
     disable           Disable the pihole servers
     enable            Enable the pihole servers
-    forward_dests     Print the forward destination stats
     help              Prints this message or the help of the given
                       subcommand(s)
-    query_types       Print the query type stats
-    recent_blocked    Print the most recently blocked domain
+    query-types       Print the query type stats
+    recent-blocked    Print the most recently blocked domain
+    status            Get the current status for your pihole servers
+                      (enabled|disabled)
     summary           Print a summary for each server
-    top_clients       Print the query data for the top N clients
-    top_items         Print the top N domains and advertisers
-    type              Print the server type for each server
+    top-clients       Print the query data for the top N clients
+    top-domains       Print the top N domains
+    upstreams         Print the forward destination stats
     version           Print the version for each server
 ```
