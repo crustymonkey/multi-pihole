@@ -76,14 +76,8 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
         .subcommand(SubCommand::with_name("summary")
             .about("Print a summary for each server")
         )
-        .subcommand(SubCommand::with_name("type")
-            .about("Print the server type for each server")
-        )
         .subcommand(SubCommand::with_name("version")
             .about("Print the version for each server")
-        )
-        .subcommand(SubCommand::with_name("10min-queries")
-            .about("Print the query data for the top N items")
         )
         .subcommand(SubCommand::with_name("top-domains")
             .about("Print the top N domains")
@@ -91,7 +85,7 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
                 .short("-n")
                 .long("--topn")
                 .value_name("INT")
-                .default_value("25")
+                .default_value("10")
                 .help("Print this many domains")
             )
         )
@@ -101,7 +95,7 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
                 .short("-n")
                 .long("--topn")
                 .value_name("INT")
-                .default_value("25")
+                .default_value("10")
                 .help("Print this many clients")
             )
         )
@@ -111,11 +105,15 @@ fn get_args<'a>(def_conf: &'a str) -> ArgMatches<'a> {
         .subcommand(SubCommand::with_name("query-types")
             .about("Print the query type stats")
         )
-        .subcommand(SubCommand::with_name("all-queries")
-            .about("Print all queries")
-        )
         .subcommand(SubCommand::with_name("recent-blocked")
             .about("Print the most recently blocked domain")
+            .arg(Arg::with_name("num")
+                .short("-n")
+                .long("--num")
+                .value_name("INT")
+                .default_value("10")
+                .help("Print this many most recent blocked domains")
+            )
         )
         .arg(Arg::with_name("config")
             .short("-c")
@@ -350,21 +348,12 @@ fn main() {
         for s in &servers {
             match s.version() {
                 None => warn!("Couldn't get a version for {}", s.base_url),
-                Some(v) => println!("Version for {}: {}",
-                    s.base_url,
-                    &v["version"]
-                ),
-            }
-            println!();
-        }
-    } else if let Some(_) = args.subcommand_matches("10min-queries") {
-        for s in &servers {
-            println!("10min queries for {}", s.base_url);
-            match s.over_time_data_10_mins() {
-                None => warn!("Couldn't get a 10min queries for {}", s.base_url),
-                Some(v) => println!("{}",
-                    serde_json::to_string_pretty(&v).ok().unwrap()
-                ),
+                Some(v) => {
+                    println!("Version info for {}", s.base_url);
+                    println!("{}",
+                        serde_json::to_string_pretty(&v).ok().unwrap()
+                    );
+                }
             }
             println!();
         }
@@ -413,24 +402,18 @@ fn main() {
             }
             println!();
         }
-    } else if let Some(_) = args.subcommand_matches("all-queries") {
+    } else if let Some(matches) = args.subcommand_matches("recent-blocked") {
         for s in &servers {
-            println!("All queries for {}", s.base_url);
-            match s.get_all_queries() {
-                None => warn!("Couldn't get all queries for {}", s.base_url),
-                Some(v) => println!("{}",
-                    serde_json::to_string_pretty(&v).ok().unwrap()
-                ),
-            }
-            println!();
-        }
-    } else if let Some(_) = args.subcommand_matches("recent-blocked") {
-        for s in &servers {
-            match s.recent_blocked() {
+            let num = value_t!(matches, "num", usize).ok().unwrap();
+            match s.recent_blocked(num) {
                 None => warn!("Couldn't get most recent blocked for {}",
                     s.base_url),
-                Some(v) => println!("Most recent blocked for {}: {}",
-                    s.base_url, v),
+                Some(v) => {
+                    println!("Most recent blocked for {}", s.base_url);
+                    for dom in v["blocked"].as_array().unwrap() {
+                        println!("{}", dom.as_str().unwrap());
+                    }
+                }
             }
             println!();
         }

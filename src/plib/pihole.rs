@@ -56,37 +56,26 @@ impl Pihole {
         return self.run_get_cmd("info/version");
     }
 
-    /// Return today's data in 10 minute intervals
-    pub fn over_time_data_10_mins(&self) -> Option<Value> {
-        return self.run_get_cmd("overTimeData10mins");
-    }
-
-    /// Get the top domain and top advertisers lists
+    /// Get the top domains
     pub fn top_items(&self, top_n: Option<usize>) -> Option<Value> {
         let _top_n = match top_n {
-            None => 25,
+            None => 10,
             Some(n) => n,
         };
 
-        let mut url = self.build_url();
-        url.push_str(&format!("/stats/top_domains?count={}", _top_n));
-        debug!("Calling url: {}", &url);
-
-        return self.call_url(&url, None);
+        let cmd = format!("stats/top_domains?count={}", _top_n);
+        return self.run_get_cmd(&cmd);
     }
 
     /// Get the top clients
     pub fn top_clients(&self, top_n: Option<usize>) -> Option<Value> {
         let _top_n = match top_n {
-            None => 25,
+            None => 10,
             Some(n) => n,
         };
 
-        let mut url = self.build_url();
-        url.push_str(&format!("/stats/top_clients?count={}", _top_n));
-        debug!("Calling url: {}", &url);
-
-        return self.call_url(&url, None);
+        let cmd = format!("stats/top_clients?count={}", _top_n);
+        return self.run_get_cmd(&cmd);
     }
 
     // Get the forward destinations
@@ -97,15 +86,6 @@ impl Pihole {
     /// Get the query type stats from the server
     pub fn get_query_types(&self) -> Option<Value> {
         return self.run_get_cmd("stats/query_types");
-    }
-
-    /// TODO: FIX Get all the DNS query data
-    pub fn get_all_queries(&self) -> Option<Value> {
-        let mut url = self.build_url();
-        url.push_str("&getAllQueries");
-        debug!("Calling url: {}", &url);
-
-        return self.call_url(&url, None);
     }
 
     /// Get a stats summary from the server
@@ -145,8 +125,9 @@ impl Pihole {
     }
 
     /// Get the most recently blocked domain
-    pub fn recent_blocked(&self) -> Option<Value> {
-        return self.run_get_cmd("stats/recent_blocked");
+    pub fn recent_blocked(&self, num: usize) -> Option<Value> {
+        let cmd = format!("stats/recent_blocked?count={}", num);
+        return self.run_get_cmd(&cmd);
     }
 
     /*
